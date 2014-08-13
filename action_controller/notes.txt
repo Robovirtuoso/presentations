@@ -1,0 +1,54 @@
+Cool classes:
+- AbstractController::Rendering
+  - #view_assigns
+  - DEFAULT_PROTECTED_INSTANCE_VARIABLES
+  - Rails 4.1 #_protected_ivars
+
+- ActionController::Rescue
+  - #rescue_from
+
+- ActionController::Responder
+
+- ActionController::HideActions
+
+#=============================
+
+Hi, my name is Alex Williams, I work here at Acumen. Today I'm going to be talking about ActionController.
+This section of Rails, in my opinion, is one of the most overlooked parts of Rails. ActionController
+provides a lot really cool classes that can help you clean up your controllers.
+
+Firstly, the base of ActionController is split into two classes. ActionController::Base and ActionController::Metal.
+Base is what our conventional ApplicationController inherits from. This is the one we're familiar with. Metal is a
+class that is a bare implementation of a controller. This is somewhat of a 'sinatra' controller. It doesn't include
+rendering, or redirecting, no routes, no strong parameters, not even a view path to know where your views live.
+This is the class for those of you that write code in a minimalist style. If you ever find yourself applying YAGNI
+to your controller, this class might be for you.
+
+For a complete list of the modules included in ActionController::Base they're listed in the source. And if you prefer blacklisting to whitelisting
+Base provides you with a `.without_modules` macro to exclude the modules that you don't want or need in your controller.
+
+Of course white listing is probably safer so you don't have to worry about what module depends on what module. But I appreciate the
+ability to start a controller off small and then if I do end up needing more functionality I simply remove the specific inclusion
+or exclusion, inherit from base and all is well.
+
+http://pivotallabs.com/building-a-fast-lightweight-rest-service-with-rails-3/
+
+Here's a link to an article on how to build a very light-weight rails application.
+
+Now, onto some classes that will help you clean up your code.
+
+In some controllers exception handling is a common practice. One of the most common is rescuing exceptions such as RecordNotFound. There's also a practice called exception handling as control flow, it was a bit of a rails fad for a while and now plagues some code bases. This is where you raise custom exceptions in your code and rescue them in your controller to decide what to render. What you end up with is controller actions with giant rescue blocks and many different paths of actions. When you just want to see what the show action for some resource does you end up having to dig through all of the cases of what happens when it fails. You should really only have to look at that when you are dealing with that failure.
+
+This is where ActionController::Rescue comes in to play. This ActionController module takes advantage of an ActiveSupport module called Rescuable. The idea behind it is fairly simple. You can call rescue_from, giving it the error you want to rescue, and then the name of the method you want called when that exception is thrown. Then in your code, your rescue Exception and call rescue_with_handler giving it the error caught and if you have a rescue_from defined somewhere, it'll get called.
+
+ActionController::Rescue is the module that rescues Exception and calls rescue_with_handlers. So all you have to do is define rescue_from in your controllers.
+
+Next class I want to show you is ActionController::Responder. So if you're like me you prefer terse, easy to understand syntax. And if that's the case you probably prefer the fairly new respond_with syntax to the old respond_to syntax. The respond_to syntax gets very gnarly quickly. Using respond_with you know you're following rails conventions as suggested. But unfortunately, business doesn't always conform to rails conventions. Which is fine, in the grand scheme of things, we want to help our stakeholders and if an unconventional practice is going to make them more money I'm okay with providing that for them. However I don't want to cringe every time I see the code I wrote to supplement that. Responders can help us out a lot with that.
+
+ActionController::Responder is the class that gets called when you call respond_with. It has methods on it that will get called depending on the format. Html will do a default render, json will render json, etc. Very conventional. But what about when you need something unconventional? Well you can create a new responder to use. There's only a few methods you need to know about to implement one and you then you can go back to using your nice respond_with syntax.
+
+The method that gets called based on the format is prepended with a 'to'. So when your controller responds to html, the to_html method will get called, and so on and so forth. has_error? is a method that will return true if your resource has any errors on it. default_render will delegate to the controller's default render method. resource is a method that is going to be whatever object you send to respond_with. Your controller instance is available through a controller method. And finally resource_errors is the method that will get called when you call display_errors. It's going to render based on the format, with the value of your `format`_resource_errors.
+
+So when you set your responder at the class level, that is the responder that's going to be used for every action. What happens if you have logic specific to your update action? You definitely don't want to start adding checks for the action name inside of your responder. Fortunately, you can pass a specific responder as an option to respond_with. So you can have a different responder for every action if you so desire.
+
+But if there's anything that we can do to make our controller's cleaner, to have easier to understand, easier to test and more maintainable controllers, it's to make more of them. If you're only following REST 60% of the time, your controllers are going to get gnarly. And that's what I see a lot of. Gnarly controllers that have unrestful actions. Why do we do this? "I'm not going to need a whole controller for this one action" as if a controller is this massive object that's going to wear your application down to create. It's okay for controllers to have one method. If you feel like a controller is too heavy handed, inherit it from Metal. If this controller is dependent on a resource in another controller, inherit it from that controller. Everything is a GET, POST, PUT or DELETE, so why express our code in a way that is misleading? If you go into a controller and there are 11 methods, and only two of them are restful, chances are you have 3 controllers expressed in one class. Don't fear controllers, use them to your advantage.

@@ -1,0 +1,62 @@
+Hello. Today I'm going to be talking about Active Support. Active Support is a
+fantastic gem included in Rails core.  I feel that during development we miss
+out on a lot of the tools active support gives us due to unfimiliarity with the
+gem.  We assume that Active Support is just that part of Rails that monkey
+patches core classes and gives us methods we kinda wish Ruby just came with,
+like String#present?. And while yes, it does do that, it also gives us lots of
+convenience objects that we can use to improve the quality and the amount of
+code we have to write.
+
+The first object I would like to talk about is OrderedHash. If you're familiar
+with the gem Hashie, OrderedHash is an object that is very similar in use. It
+gives you a hash that you can use dot notation on. So this is pretty cool. But
+what happens if I already have an existing hash? Well there's another object for
+that and it inherits from OrderedHash. It's called InheritableOptions.
+InheritableOptions is similar to an OpenStruct. It takes in a hash and gives you
+back an object that acts like a hash but gives you dot notation, remembering the
+original keys and values stored. Now how does this differ from an OpenStruct and
+why would you want to use this? In functionality, it's equivalent. The benfit to
+using this over an OpenStruct is speed. Hashes are much, much faster than
+OpenStructs. And if you're writing code that is being processed on the server,
+it isn't really a big deal, but if you need a value object created from a
+service object created by your controller, or several value objects, there could
+be a notable difference. Also it makes your syntax for value objects
+significantly shorter. We can go from writing code in the first example to code
+in the second.
+
+However, there is yet another module in ActiveSupport that takes advantage of
+OrderedHash and that is Configurable. This object is real winner in my opinion.
+Any time you need configuration of any sort, or are ever defining a config
+method or hash, you probably want this object. Including this module gives your
+class a config method that returns an OrderedHash. Here you can store all of
+your configuration. If you want specific fields up front you can use the
+config_accessor method. This is like attr_accessor but specifically for your
+config object. If you give it a block, the last thing returned in the block will
+be the default value for that field. You're also given access to a configure
+method, which simply yields your config object to a block if you need to do
+something to it on a class level.
+
+There are also several options you can pass to config_accessor such as
+instance_reader, instance_writer and instance_accessor. These are there so you
+can limit whether or not you want someone to be able to change or read the
+config from outside of your class.
+
+The next example is something to help you clean up some of your controllers.
+Let's say you're rescuing inside one or several of your controller methods. This
+is fairly reasonable as a lot of times you might not want the customer to see a
+404 or a 500, you want them to continue with their experience even if they mess
+up. The most common kind of rescuing is done for RecordNotFound, however I know
+we have several controllers with domain object specific exceptions being thrown that
+we would want to rescue. This can really clutter up controllers, especially when
+you have different respond_to blocks based on different exceptions being thrown.
+ActiveSupport defines a module called Rescuable. It gives you three methods, two
+that you need to care about. The first being rescue_from. You give it the
+exception you want to avoid and then a handler. Now wherever you need to rescue
+multiple errors you simply rescue Exception, pass the caught error into the
+second method that you should care about, handler_for_rescue, and your specified
+callback will be executed. But how does this help us clean up our controller
+when we have to have the same number of rescue blocks? Well ActionController
+actually has a middleware component called ActionController::Rescuer that takes
+care of the last part for us. So all we have to do is say rescue_from at the top
+of our controllers and then boom, much cleaner code. Our restful actions can
+stay free of clutter.
